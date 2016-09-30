@@ -1,0 +1,135 @@
+#!/usr/bin/perl
+use strict;
+use warnings;
+use JSON;
+use Sys::Syslog;
+use Proc::Background;
+use Config::Simple; 
+use URI;
+use Data::Dumper;
+$Data::Dumper::Indent = 0;
+
+#dependencies:
+# libjson-perl libproc-background-perl libconfig-simple-perl
+
+openlog('odroid.c2.video.helper', "nofatal,pid", "local0");
+my %config = ();
+
+
+sub readConfig{
+	my $homedir = (getpwuid $>)[7];
+	foreach my $file ('/etc/odroid.c2.video.helper.conf', "$homedir/.odroid.c2.video.helper.conf"){
+		if( -f "$file"){
+			Config::Simple->import_from("$file", \%config);
+			logg("info", "Read configuration from $file");
+			logg("info", "Config contains: ". Dumper(\%config));
+		}
+	}
+	if(scalar keys %config == 0){
+		#no config. Start with a hardcoded config
+		$config{'general.debug'}=1;
+		$config{'general.playerdebug'}=1;
+		$config{'general.player'} = '/usr/local/bin/c2play-x11';
+	}
+}
+
+sub logg{
+	my $priority = shift;
+	my $message = shift;
+	if(defined $config{'general.debug'} && $config{'general.debug'} > 0){
+		syslog($priority, $message);
+	}
+}
+
+sub send_message{
+	#not used in our case
+	my $msg = shift;
+	my $length = length($msg);
+	#write message size as integer
+	print pack('I', $length);
+	#write messageA
+	logg("info", "Sent message $msg");
+	print $msg;	
+}
+
+sub read_message{
+	#read message size (4 bytes) from STDIN
+	my $lengthBinary = "";
+	my $bytes = read(STDIN, $lengthBinary, 4); #hardcoded to 4 bytes/int, works for <4GB messages, which we'll never have anyway
+	my $msg = "";
+	$bytes = read(STDIN, $msg, unpack("i", $lengthBinary));
+	logg("info", "Received message $msg");
+	return decode_json($msg);	
+}
+
+sub playback{
+	my $url = shift;
+        #found a link. We can play it
+	#propper playback
+	if(defined $config{'general.playerdebug'} && $config{'general.playerdebug'} > 0){
+		#debug playback. Player output goes to syslog
+		#warning - command is vulerable to shell injection
+        	my $cmdline = $config{'general.player'}." '$url' 2>&1";
+        	logg("info", "Starting player with cmdline: $cmdline");
+        	open PLAYER, "$cmdline |" or die $!;
+       		while(<PLAYER>){
+              		logg("info", $_);
+        	}
+	}
+	else{
+        	my $proc = Proc::Background->new($config{'general.player'}, $url);
+        	logg("info", "Started playback pid ".$proc->pid);
+	}
+}
+
+readConfig();
+#main program loop
+while(1){
+	logg("info", "Listening for a message");
+	my $msg = read_message();
+	logg("info", Dumper(\$msg));
+	if($msg->{type} eq 'page'){
+		#we will use youtube-dl to get a URL for playback
+		logg("info", "Extracting youtube-dl link");
+		#see if the configuration has special parameters for this domain
+		my $uri = URI->new($msg->{'url'});
+		my $domain = $uri->host;
+		logg("info", "Extracted domain $domain");
+		my $extraArgs = "";
+		#unfortunately we need to itterate through all config values to see if we have a matching domain. Config::Simple design flaw
+		foreach my $keys (keys %config){
+			#extract the section name from the config file
+			if($keys=~/([^\.]+)\./){
+				my $base = $1;
+				logg("info", "Looking at config section $base");
+				#the config name must match part of domain 
+				if($domain=~/$base/){
+					logg("info", "domain $domain matches base $base");
+					if(defined $config{$base.".extraArgs"}){
+						$extraArgs = $config{$base.".extraArgs"};
+					}
+				}
+			}
+		}
+		my $cmd = "/usr/local/bin/youtube-dl -g $extraArgs '$msg->{url}' ";
+		logg("info", "Extracting with command $cmd");
+		my @links = `$cmd`;
+		#cut out whitespace from the link
+		$links[0]=~s/^\s+|\s+$//g;
+		if($links[0]=~/https?:\/\//){
+			logg("info", "Found real URL via youtube-dl: $links[0]");
+			playback($links[0]);
+		}		
+		else{
+			logg("info", "Unable to parse youtube-dl output: $links[0]");
+		}
+	}
+	elsif($msg->{type} eq 'link'){
+		#try to play the link directly
+		playback($msg->{'url'});
+	}
+	else{
+		logg("error", "Message not understood");
+	}
+
+}

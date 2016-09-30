@@ -1,0 +1,9 @@
+{
+  "name": "odroid.c2.video.helper",
+  "description": "External video player helper for Odroid C2",
+  "path": "HOST_PATH",
+  "type": "stdio",
+  "allowed_origins": [
+    "chrome-extension://ecianfpapgmlgpmiggljbmniciiagmbh/"
+  ]
+}

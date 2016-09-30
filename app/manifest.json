@@ -1,0 +1,26 @@
+{
+  // Extension ID: ecianfpapgmlgpmiggljbmniciiagmbh
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAttkIdgDb1DPtaGuTYVWKi9n79D5OuOfS8BIzk8pJELe0ro8xgTR/XZ6KdezOGgHnb+z7Q5vo8kx3O0MwORpTuMx3JAd5yJFgIctl4zcfTbmX8AJ50U5kZ33UuoTn7LvQVSd5hIUah4FXci02NNABxEcoxmnqqwtcyoZucI0c0MORAHWkkzvB1kJTZiGT+Lu/tFpCBwDVr6LhCau6VbnqLRLPOMqPl7+2sPUMlP4p2bhEDrAkPPCCD1tN2Bs5HW1UDVfpWIJ4XQrOXJyy6zXOfszC0eMOPvp69oJNMMZubPSfn7gE/0FNDI7B62In+zn3yHrhK5sV/mykannlwVXQSwIDAQAB",
+  "name": "Odroid C2 video helper",
+  "version": "1.1",
+  "manifest_version": 2,
+  "description": "Allows you to play videos with an external video player that supports acceleration",
+  "icons": {
+    "128": "icon-128.png"
+  },
+  "permissions": [
+    "nativeMessaging",
+    "activeTab"
+  ],
+  "background": {
+	  "scripts": ["c2player.js"],
+	  "persistent": false
+  },
+  "browser_action": {
+          "default_icon": {                    // optional
+            "19": "video-player.png",           // optional
+            "38": "video-player.png"            // optional
+          },
+          "default_title": "Play in external player"      // optional; shown in tooltip
+	}
+}
