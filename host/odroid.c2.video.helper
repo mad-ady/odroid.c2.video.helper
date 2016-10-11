@@ -126,6 +126,7 @@ while(1){
 	}
 	elsif($msg->{type} eq 'link'){
 		#try to play the link directly
+		logg("info", "Playing a direct link");
 		playback($msg->{'url'});
 	}
 	else{
