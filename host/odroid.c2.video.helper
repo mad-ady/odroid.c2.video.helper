@@ -64,12 +64,20 @@ sub read_message{
 
 sub playback{
 	my $url = shift;
+	my $audioURL = shift;
         #found a link. We can play it
 	#propper playback
 	if(defined $config{'general.playerdebug'} && $config{'general.playerdebug'} > 0){
 		#debug playback. Player output goes to syslog
 		#warning - command is vulerable to shell injection
-        	my $cmdline = $config{'general.player'}." '$url' 2>&1";
+		my $cmdline;
+		if(defined $audioURL && $config{'general.player'} =~/c2play/){
+			#try the dualstream playback. The command-line is a bit different
+			$cmdline = $config{'general.player'}." '$url' --dual '$audioURL' 2>&1";
+		}
+		else{
+			$cmdline = $config{'general.player'}." '$url' 2>&1";
+		}
         	logg("info", "Starting player with cmdline: $cmdline");
         	open PLAYER, "$cmdline |" or die $!;
        		while(<PLAYER>){
@@ -118,7 +126,16 @@ while(1){
 		$links[0]=~s/^\s+|\s+$//g;
 		if($links[0]=~/https?:\/\//){
 			logg("info", "Found real URL via youtube-dl: $links[0]");
-			playback($links[0]);
+			if(defined $links[1]){
+				#cut out whitespace from the link
+		                $links[1]=~s/^\s+|\s+$//g;
+
+				#we assume the second link is to an audio-only stream
+				playback($links[0], $links[1]);
+			}
+			else{
+				playback($links[0]);
+			}
 		}		
 		else{
 			logg("info", "Unable to parse youtube-dl output: $links[0]");
