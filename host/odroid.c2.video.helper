@@ -85,7 +85,15 @@ sub playback{
         	}
 	}
 	else{
-        	my $proc = Proc::Background->new($config{'general.player'}, $url);
+		my @params = ();
+		if(defined $audioURL && $config{'general.player'} =~/c2play/){
+			@params = ($config{'general.player'}, $url, '--dual', $audioURL);
+		}
+		else{
+			@params = ($config{'general.player'}, $url);
+		}
+
+        	my $proc = Proc::Background->new(@params);
         	logg("info", "Started playback pid ".$proc->pid);
 	}
 }
