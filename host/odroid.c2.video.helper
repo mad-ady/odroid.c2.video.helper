@@ -112,6 +112,7 @@ while(1){
 		my $domain = $uri->host;
 		logg("info", "Extracted domain $domain");
 		my $extraArgs = "";
+		my $direct = 0;
 		#unfortunately we need to itterate through all config values to see if we have a matching domain. Config::Simple design flaw
 		foreach my $keys (keys %config){
 			#extract the section name from the config file
@@ -124,29 +125,39 @@ while(1){
 					if(defined $config{$base.".extraArgs"}){
 						$extraArgs = $config{$base.".extraArgs"};
 					}
+					if(defined $config{$base.".direct"}){
+						$direct = $config{$base.".direct"};
+					}
 				}
 			}
 		}
-		my $cmd = "/usr/local/bin/youtube-dl -g $extraArgs '$msg->{url}' ";
-		logg("info", "Extracting with command $cmd");
-		my @links = `$cmd`;
-		#cut out whitespace from the link
-		$links[0]=~s/^\s+|\s+$//g;
-		if($links[0]=~/https?:\/\//){
-			logg("info", "Found real URL via youtube-dl: $links[0]");
-			if(defined $links[1]){
-				#cut out whitespace from the link
-		                $links[1]=~s/^\s+|\s+$//g;
-
-				#we assume the second link is to an audio-only stream
-				playback($links[0], $links[1]);
-			}
-			else{
-				playback($links[0]);
-			}
-		}		
+		if($direct){
+			#playback the link directly, because the player supports it nativelly
+			logg("info", "Playing back directly ".$msg->{url});
+			playback($msg->{url});
+		}
 		else{
-			logg("info", "Unable to parse youtube-dl output: $links[0]");
+			my $cmd = "/usr/local/bin/youtube-dl -g $extraArgs '$msg->{url}' ";
+			logg("info", "Extracting with command $cmd");
+			my @links = `$cmd`;
+			#cut out whitespace from the link
+			$links[0]=~s/^\s+|\s+$//g;
+			if($links[0]=~/https?:\/\//){
+				logg("info", "Found real URL via youtube-dl: $links[0]");
+				if(defined $links[1]){
+					#cut out whitespace from the link
+			                $links[1]=~s/^\s+|\s+$//g;
+
+					#we assume the second link is to an audio-only stream
+					playback($links[0], $links[1]);
+				}
+				else{
+					playback($links[0]);
+				}
+			}		
+			else{
+				logg("info", "Unable to parse youtube-dl output: $links[0]");
+			}
 		}
 	}
 	elsif($msg->{type} eq 'link'){
