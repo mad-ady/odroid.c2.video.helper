@@ -67,7 +67,7 @@ sub playback{
 	my $audioURL = shift;
 	
 	#cleanup after kodi - reenable video layer
-	`echo 0 > /sys/class/video/disable_video`
+	`echo 0 > /sys/class/video/disable_video`;
 
         #found a link. We can play it
 	#propper playback
