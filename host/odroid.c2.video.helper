@@ -151,7 +151,7 @@ while(1){
 			$audiolink = $links[1] if(defined $links[1]);
 			if($links[-1]=~/ERROR:/){
 				logg("err", "Received an error from youtube-dl. Searching for suitable quality and ignoring user parameters. This will be slower");
-				$cmd = "/usr/local/bin/youtube-dl --list-formats --no-playlist '".$msg->{url}."' 2>&1 | grep ' mp4 ' | sort -k3";
+				$cmd = "/usr/local/bin/youtube-dl --list-formats --no-playlist '".$msg->{url}."' 2>&1 | grep ' mp4 ' | grep -v 'video only' | sort -k3";
 				my @quality = `$cmd`;
 				#the last line should be the best quality
 				if($quality[-1]=~/([0-9]+)\s+mp4\s+/){
