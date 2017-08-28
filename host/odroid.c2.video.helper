@@ -17,6 +17,11 @@ my %config = ();
 
 
 sub readConfig{
+	#no config. Start with a hardcoded config
+	$config{'general.debug'}=1;
+	$config{'general.playerdebug'}=1;
+	$config{'general.player'} = '/usr/local/bin/c2play-x11';
+	$config{'general.youtube-dl'} = '/usr/local/bin/youtube-dl';
 	my $homedir = (getpwuid $>)[7];
 	foreach my $file ('/etc/odroid.c2.video.helper.conf', "$homedir/.odroid.c2.video.helper.conf"){
 		if( -f "$file"){
@@ -24,12 +29,6 @@ sub readConfig{
 			logg("info", "Read configuration from $file");
 			logg("info", "Config contains: ". Dumper(\%config));
 		}
-	}
-	if(scalar keys %config == 0){
-		#no config. Start with a hardcoded config
-		$config{'general.debug'}=1;
-		$config{'general.playerdebug'}=1;
-		$config{'general.player'} = '/usr/local/bin/c2play-x11';
 	}
 }
 
@@ -89,16 +88,19 @@ sub playback{
         	}
 	}
 	else{
-		my @params = ();
+		my $cmdline;
 		if(defined $audioURL && $config{'general.player'} =~/c2play/){
-			@params = ($config{'general.player'}, $url, '--dual', $audioURL);
+			#try the dualstream playback. The command-line is a bit different
+			$cmdline = $config{'general.player'}." '$url' --dual '$audioURL'";
 		}
 		else{
-			@params = ($config{'general.player'}, $url);
+			$cmdline = $config{'general.player'}." '$url' 2>&1";
 		}
-
-        	my $proc = Proc::Background->new(@params);
-        	logg("info", "Started playback pid ".$proc->pid);
+        	logg("info", "Starting player with cmdline: $cmdline");
+        	open PLAYER, "$cmdline |" or die $!;
+       		while(<PLAYER>){
+				# do nothing
+        	}        	
 	}
 }
 
@@ -109,6 +111,7 @@ while(1){
 	my $msg = read_message();
 	logg("info", Dumper(\$msg));
 	if($msg->{type} eq 'page'){
+		system("$config{'preprocess.command'}");
 		#we will use youtube-dl to get a URL for playback
 		logg("info", "Extracting youtube-dl link");
 		#see if the configuration has special parameters for this domain
@@ -141,7 +144,9 @@ while(1){
 			playback($msg->{url});
 		}
 		else{
-			my $cmd = "/usr/local/bin/youtube-dl -g $extraArgs '$msg->{url}' 2>&1";
+			#my $cmd = "/usr/local/bin/youtube-dl -g $extraArgs '$msg->{url}' 2>&1";
+			#$cmdline = $config{'general.player'}." '$url' 2>&1";
+			my $cmd = $config{'general.youtube-dl'}." -g '$extraArgs' '$msg->{url}' 2>&1";
 			logg("info", "Extracting with command $cmd");
 			my @links = `$cmd`;
 			logg("debug", "Output: ". join("\n", @links));
@@ -151,13 +156,15 @@ while(1){
 			$audiolink = $links[1] if(defined $links[1]);
 			if($links[-1]=~/ERROR:/){
 				logg("err", "Received an error from youtube-dl. Searching for suitable quality and ignoring user parameters. This will be slower");
-				$cmd = "/usr/local/bin/youtube-dl --list-formats --no-playlist '".$msg->{url}."' 2>&1 | grep ' mp4 ' | grep -v 'video only' | sort -k3";
+				#$cmd = "/usr/local/bin/youtube-dl --list-formats --no-playlist '".$msg->{url}."' 2>&1 | grep ' mp4 ' | grep -v 'video only' | sort -k3";
+				$cmd = $config{'general.youtube-dl'}." --list-formats --no-playlist '".$msg->{url}."' 2>&1 | grep ' mp4 ' | grep -v 'video only' | sort -k3";
 				my @quality = `$cmd`;
 				#the last line should be the best quality
 				if($quality[-1]=~/([0-9]+)\s+mp4\s+/){
 					my $q = $1;
 					logg("info", "Selected video quality $q instead ($quality[-1])");
-					$cmd = "/usr/local/bin/youtube-dl -g -f $q --no-playlist '$msg->{url}' 2>&1";
+					#$cmd = "/usr/local/bin/youtube-dl -g -f $q --no-playlist '$msg->{url}' 2>&1";
+					$cmd = $config{'general.youtube'}." -g -f $q --no-playlist '$msg->{url}' 2>&1";
 					logg("info", "Re-extracting with command $cmd");
 					@links = `$cmd`;
 					#we assume we get a link, because I'm too lazy to test, and if it fails we can't do much about it
@@ -196,5 +203,5 @@ while(1){
 	else{
 		logg("err", "Message not understood");
 	}
-
+	system("$config{'postprocess.command'}");
 }
