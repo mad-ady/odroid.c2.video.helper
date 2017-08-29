@@ -144,8 +144,6 @@ while(1){
 			playback($msg->{url});
 		}
 		else{
-			#my $cmd = "/usr/local/bin/youtube-dl -g $extraArgs '$msg->{url}' 2>&1";
-			#$cmdline = $config{'general.player'}." '$url' 2>&1";
 			my $cmd = $config{'general.youtube-dl'}." -g '$extraArgs' '$msg->{url}' 2>&1";
 			logg("info", "Extracting with command $cmd");
 			my @links = `$cmd`;
@@ -156,14 +154,12 @@ while(1){
 			$audiolink = $links[1] if(defined $links[1]);
 			if($links[-1]=~/ERROR:/){
 				logg("err", "Received an error from youtube-dl. Searching for suitable quality and ignoring user parameters. This will be slower");
-				#$cmd = "/usr/local/bin/youtube-dl --list-formats --no-playlist '".$msg->{url}."' 2>&1 | grep ' mp4 ' | grep -v 'video only' | sort -k3";
 				$cmd = $config{'general.youtube-dl'}." --list-formats --no-playlist '".$msg->{url}."' 2>&1 | grep ' mp4 ' | grep -v 'video only' | sort -k3";
 				my @quality = `$cmd`;
 				#the last line should be the best quality
 				if($quality[-1]=~/([0-9]+)\s+mp4\s+/){
 					my $q = $1;
 					logg("info", "Selected video quality $q instead ($quality[-1])");
-					#$cmd = "/usr/local/bin/youtube-dl -g -f $q --no-playlist '$msg->{url}' 2>&1";
 					$cmd = $config{'general.youtube'}." -g -f $q --no-playlist '$msg->{url}' 2>&1";
 					logg("info", "Re-extracting with command $cmd");
 					@links = `$cmd`;
