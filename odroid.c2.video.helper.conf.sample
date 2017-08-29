@@ -1,3 +1,5 @@
+; For normal use this should be named ~/.odroid.c2.video.helper.conf
+
 [general]
 
 ; 0 makes no entries in syslog, 1 writes entries to syslog, defaults to 1 if not used
