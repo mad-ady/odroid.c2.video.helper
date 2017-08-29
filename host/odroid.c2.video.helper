@@ -160,7 +160,7 @@ while(1){
 				if($quality[-1]=~/([0-9]+)\s+mp4\s+/){
 					my $q = $1;
 					logg("info", "Selected video quality $q instead ($quality[-1])");
-					$cmd = $config{'general.youtube'}." -g -f $q --no-playlist '$msg->{url}' 2>&1";
+					$cmd = $config{'general.youtube-dl'}." -g -f $q --no-playlist '$msg->{url}' 2>&1";
 					logg("info", "Re-extracting with command $cmd");
 					@links = `$cmd`;
 					#we assume we get a link, because I'm too lazy to test, and if it fails we can't do much about it
