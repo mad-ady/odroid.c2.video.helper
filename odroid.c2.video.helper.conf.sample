@@ -1,0 +1,31 @@
+; For normal use this should be named ~/.odroid.c2.video.helper.conf
+
+[general]
+
+; 0 makes no entries in syslog, 1 writes entries to syslog, defaults to 1 if not used
+debug=1
+
+; 0 gives sparse syslog entries with debug=1, 1 gives more verbose entries, defaults to 1 if not used
+playerdebug=1
+
+; player and youtube-dl entries are optional, if the defaults suit you not necessary in the config at all
+; defaults to /usr/local/bin/c2play-x11 if not used
+#player=/home/<user>/.git/c2play/c2play-x11
+
+; defaults to /usr/local/bin/youtube-dl if not used
+#youtube-dl=/usr/bin/youtube-dl
+
+[youtu]
+; range of qualities, starting with (normal) highest
+extraArgs="-f 22/18/17 --no-playlist"
+
+; for 4k videos, must use c2play dualstream branch
+;set quality to 3840x2160 with audio mp4a.40.2@128k (44100Hz)
+;extraArgs="-f266,140 --no-playlist"
+
+; below items are optional, not necessary unless you want to do some pre/post-c2play shell commands
+[preprocess]
+#command='(xset -dpms;xset s off;killall compton) &'
+[postprocess]
+#command='(xset dpms;xset s on;compton) &'
+[vimeo]
