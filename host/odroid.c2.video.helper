@@ -61,6 +61,16 @@ sub read_message{
 	return decode_json($msg);	
 }
 
+sub get_clipboard{
+	use Clipboard::Xclip;
+	my $message = {};
+	my $URL = Clipboard->paste;
+	$message->{"url"} = $URL;
+	$message->{"type"} = "page";	
+    logg("info", "Received url $URL");
+	return $message;
+}	
+
 sub playback{
 	my $url = shift;
 	my $audioURL = shift;
@@ -72,44 +82,52 @@ sub playback{
 	#propper playback
 	if(defined $config{'general.playerdebug'} && $config{'general.playerdebug'} > 0){
 		#debug playback. Player output goes to syslog
-		#warning - command is vulerable to shell injection
-		my $cmdline;
+		my $player = $config{'general.player'};
+		my $opts = "2>&1";
 		if(defined $audioURL && $config{'general.player'} =~/c2play/){
 			#try the dualstream playback. The command-line is a bit different
-			$cmdline = $config{'general.player'}." '$url' --dual '$audioURL' 2>&1";
+			logg("info", "Starting player with cmdline: $player $url --dual $audioURL $opts");
+			open( PLAYER, "-|", $player, $url, "--dual", $audioURL, $opts ) or die $!;
 		}
 		else{
-			$cmdline = $config{'general.player'}." '$url' 2>&1";
+			logg("info", "Starting player with cmdline: $player $url $opts");
+			open( PLAYER, "-|", $player, $url, $opts ) or die $!;
 		}
-        	logg("info", "Starting player with cmdline: $cmdline");
-        	open PLAYER, "$cmdline |" or die $!;
-       		while(<PLAYER>){
-              		logg("info", $_);
-        	}
+		while(<PLAYER>) {
+			# wait for it to finish...
+		}
 	}
 	else{
-		my $cmdline;
+		my $player = $config{'general.player'};
 		if(defined $audioURL && $config{'general.player'} =~/c2play/){
 			#try the dualstream playback. The command-line is a bit different
-			$cmdline = $config{'general.player'}." '$url' --dual '$audioURL'";
+			logg("info", "Starting player with cmdline: $player $url --dual $audioURL");
+			open( PLAYER, "-|", $player, $url, "--dual", $audioURL ) or die $!;
 		}
 		else{
-			$cmdline = $config{'general.player'}." '$url' 2>&1";
+			logg("info", "Starting player with cmdline: $player $url");
+			open( PLAYER, "-|", $player, $url ) or die $!;
 		}
-        	logg("info", "Starting player with cmdline: $cmdline");
-        	open PLAYER, "$cmdline |" or die $!;
-       		while(<PLAYER>){
-				# do nothing
-        	}        	
+		while(<PLAYER>){
+			#do nothing
+		}
 	}
 }
 
 readConfig();
 #main program loop
-while(1){
 	logg("info", "Listening for a message");
-	my $msg = read_message();
-	logg("info", Dumper(\$msg));
+	my $msg;
+	if("$ARGV[0]" ne "use_clipboard") {
+		# then program is being started as a browser plugin
+		logg("info", "Getting URL passed from browser");
+		$msg = read_message();
+	}
+	else {
+		# then program has been started in "standalone mode with use_clipboard
+		logg("info", "Getting URL from clipboard");		
+		$msg = get_clipboard();
+	}
 	if($msg->{type} eq 'page'){
 		system("$config{'preprocess.command'}");
 		#we will use youtube-dl to get a URL for playback
@@ -200,4 +218,3 @@ while(1){
 		logg("err", "Message not understood");
 	}
 	system("$config{'postprocess.command'}");
-}
