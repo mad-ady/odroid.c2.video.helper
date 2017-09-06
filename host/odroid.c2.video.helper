@@ -3,14 +3,15 @@ use strict;
 use warnings;
 use JSON;
 use Sys::Syslog;
-use Proc::Background;
 use Config::Simple; 
 use URI;
 use Data::Dumper;
 $Data::Dumper::Indent = 0;
 
 #dependencies:
-# libjson-perl libproc-background-perl libconfig-simple-perl
+# libjson-perl libconfig-simple-perl
+# additionally, if stand-alone mode is used:
+# perl-Clipboard and x11-xclip
 
 openlog('odroid.c2.video.helper', "nofatal,pid", "local0");
 my %config = ();
