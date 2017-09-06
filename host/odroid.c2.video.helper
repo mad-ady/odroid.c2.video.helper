@@ -12,6 +12,8 @@ $Data::Dumper::Indent = 0;
 # libjson-perl libconfig-simple-perl
 # additionally, if stand-alone mode is used:
 # perl-Clipboard and x11-xclip
+# sudo perl -MCPAN -e 'install Clipboard::Xclip'
+# sudo apt-get install x11-xclip libjson-perl libconfig-simple-perl
 
 openlog('odroid.c2.video.helper', "nofatal,pid", "local0");
 my %config = ();
